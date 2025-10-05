@@ -1,0 +1,14 @@
+name: mlx-sdxl-lora
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - pip
+  - pip:
+      - gradio>=4.0.0
+      - openai>=1.0.0
+      - pillow>=10.0.0
+      - pytest>=7.0.0
+      - pytest-cov>=4.0.0
+      - ruff>=0.1.0
