@@ -133,8 +133,8 @@ Pagination uses `navigate_page(direction: int)` with bounds checking to prevent 
 
 ## Quick Reference
 
-**Start app**: `python app.py` (LM Studio) or `python caption_tool.py` (MLX)  
-**Run tests**: `pytest tests/ -v`  
-**Format code**: `ruff format .`  
-**Key modules**: `encode_image_to_base64()`, `scan_workspace_directory()`, `CaptionManager`  
+**Start app**: `python app.py` (LM Studio) or `python caption_tool.py` (MLX)
+**Run tests**: `pytest tests/ -v`
+**Format code**: `ruff format .`
+**Key modules**: `encode_image_to_base64()`, `scan_workspace_directory()`, `CaptionManager`
 **Test fixtures**: `temp_workspace`, `reset_workspace_state`
