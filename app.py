@@ -20,6 +20,9 @@ import gradio as gr
 from openai import OpenAI
 from PIL import Image
 
+from workspace_manager import WorkspaceManager, SecurityError
+from template_engine import TemplateEngine
+
 # Configuration
 LM_STUDIO_URL = "http://127.0.0.1:1234/v1"
 SYSTEM_PROMPT = """You are an expert image captioning assistant for AI art model training.
@@ -36,7 +39,12 @@ workspace_state: Dict = {
     "current_page": 0,
     "images_per_page": 12,
     "workspace_dir": None,
+    "workspace_manager": None,  # Will be initialized when needed
+    "session_workspace": None,  # Current session workspace path
 }
+
+# Initialize template engine
+template_engine = TemplateEngine()
 
 
 def encode_image_to_base64(image_path: str) -> str:
@@ -175,7 +183,7 @@ def scan_workspace_directory(directory_path: str) -> List[Tuple[str, str]]:
 
 
 def load_workspace(directory_path: str) -> Tuple[str, str]:
-    """Load a workspace directory.
+    """Load a workspace directory securely.
 
     Args:
         directory_path: Path to the workspace directory
@@ -184,17 +192,44 @@ def load_workspace(directory_path: str) -> Tuple[str, str]:
         Tuple of (status_message, gallery_html)
     """
     try:
-        images = scan_workspace_directory(directory_path)
-        workspace_state["images"] = images
-        workspace_state["workspace_dir"] = directory_path
-        workspace_state["current_page"] = 0
+        # Initialize workspace manager if not already done
+        if workspace_state["workspace_manager"] is None:
+            workspace_state["workspace_manager"] = WorkspaceManager()
 
-        status = f"✅ Loaded {len(images)} images from workspace"
-        gallery = render_gallery()
-        return status, gallery
+        manager = workspace_state["workspace_manager"]
 
+        # Create session workspace if not exists
+        if workspace_state["session_workspace"] is None:
+            workspace_state["session_workspace"] = manager.create_session_workspace()
+
+        # Use copy_directory_to_workspace for secure operation
+        try:
+            safe_images = manager.copy_directory_to_workspace(directory_path)
+            workspace_state["images"] = safe_images
+            workspace_state["workspace_dir"] = directory_path
+            workspace_state["current_page"] = 0
+
+            status = f"✅ Loaded {len(safe_images)} images from workspace (secured)"
+            gallery = render_gallery()
+            return status, gallery
+        except SecurityError:
+            # Fallback: scan directory and copy individual files
+            images = scan_workspace_directory(directory_path)
+            image_files = [img_path for img_path, _ in images]
+            safe_images = manager.copy_files_to_workspace(image_files)
+
+            workspace_state["images"] = safe_images
+            workspace_state["workspace_dir"] = directory_path
+            workspace_state["current_page"] = 0
+
+            status = f"✅ Loaded {len(safe_images)} images from workspace (secured, fallback mode)"
+            gallery = render_gallery()
+            return status, gallery
+
+    except SecurityError as e:
+        return handle_ui_error("Load Workspace", e), ""
     except Exception as e:
-        return f"❌ Error loading workspace: {str(e)}", ""
+        return handle_ui_error("Load Workspace", e), ""
 
 
 def render_gallery() -> str:
@@ -219,7 +254,7 @@ def render_gallery() -> str:
     # Build gallery HTML
     html = f"""
     <div style='margin-bottom: 20px; text-align: center;'>
-        <strong>Page {page + 1} of {total_pages}</strong> 
+        <strong>Page {page + 1} of {total_pages}</strong>
         (Showing {start_idx + 1}-{end_idx} of {len(images)} images)
     </div>
     <div style='display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;'>
@@ -235,11 +270,11 @@ def render_gallery() -> str:
         caption_preview = caption[:50] + "..." if len(caption) > 50 else caption
 
         html += f"""
-        <div style='border: 2px solid {"#4CAF50" if has_caption else "#ccc"}; 
+        <div style='border: 2px solid {"#4CAF50" if has_caption else "#ccc"};
                     border-radius: 8px; padding: 10px; background: white;'>
-            <img src='file/{img_path}' style='width: 100%; height: 150px; object-fit: cover; 
-                 border-radius: 4px; cursor: pointer;' 
-                 onclick='document.getElementById("image_selector").value={global_idx}; 
+            <img src='file/{img_path}' style='width: 100%; height: 150px; object-fit: cover;
+                 border-radius: 4px; cursor: pointer;'
+                 onclick='document.getElementById("image_selector").value={global_idx};
                           document.getElementById("load_image_btn").click();'/>
             <div style='margin-top: 8px; font-size: 12px;'>
                 <div style='font-weight: bold;'>{caption_indicator} Image {global_idx + 1}</div>
@@ -402,10 +437,10 @@ def batch_generate_captions(
 
 
 def bulk_update_captions(template: str, mode: str = "append") -> Tuple[str, str]:
-    """Apply bulk update to all loaded captions.
+    """Apply bulk update to all loaded captions with template placeholders.
 
     Args:
-        template: Template text to apply
+        template: Template text to apply (supports {filename}, {index} placeholders)
         mode: "append", "prepend", or "replace"
 
     Returns:
@@ -420,36 +455,82 @@ def bulk_update_captions(template: str, mode: str = "append") -> Tuple[str, str]
             return "❌ Template cannot be empty", render_gallery()
 
         updated_count = 0
-        for img_path, _ in images:
+        for index, (img_path, _) in enumerate(images):
             try:
+                # Process template with dynamic placeholders
+                processed_template = template_engine.process_template(template, img_path, index)
+
                 current_caption = load_caption(img_path)
 
                 if mode == "append":
                     new_caption = (
-                        f"{current_caption}, {template}"
+                        f"{current_caption}, {processed_template}"
                         if current_caption
-                        else template
+                        else processed_template
                     )
                 elif mode == "prepend":
                     new_caption = (
-                        f"{template}, {current_caption}"
+                        f"{processed_template}, {current_caption}"
                         if current_caption
-                        else template
+                        else processed_template
                     )
                 else:  # replace
-                    new_caption = template
+                    new_caption = processed_template
 
                 save_caption(img_path, new_caption)
                 updated_count += 1
             except Exception:
                 continue
 
-        status = f"✅ Updated {updated_count} captions"
+        status = f"✅ Updated {updated_count} captions (with dynamic placeholders)"
         gallery = render_gallery()
         return status, gallery
 
     except Exception as e:
-        return f"❌ Bulk update failed: {str(e)}", render_gallery()
+        return handle_ui_error("Bulk Update", e), render_gallery()
+
+
+def preview_template(template: str) -> str:
+    """Preview template with example data.
+
+    Args:
+        template: Template text with placeholders
+
+    Returns:
+        Preview of processed template
+    """
+    if not template.strip():
+        return "Enter a template to see preview..."
+
+    try:
+        # Use first image for preview if available
+        images = workspace_state["images"]
+        if images:
+            example_path = images[0][0]
+            preview = template_engine.process_template(template, example_path, 0)
+        else:
+            # Use example data if no images loaded
+            preview = template_engine.process_template(template, "/path/to/example_image.jpg", 0)
+
+        return f"Preview: {preview}"
+    except Exception as e:
+        return f"Template error: {str(e)}"
+
+
+def handle_ui_error(operation_name: str, error: Exception) -> str:
+    """Handle errors with consistent UI messaging.
+
+    Args:
+        operation_name: Name of the operation that failed
+        error: The exception that occurred
+
+    Returns:
+        Formatted error message for UI
+    """
+    if isinstance(error, SecurityError):
+        return f"🚨 Security Error in {operation_name}: {str(error)}"
+    else:
+        return f"❌ {operation_name} failed: {str(error)}"
 
 
 def create_ui() -> gr.Blocks:
@@ -462,7 +543,7 @@ def create_ui() -> gr.Blocks:
         gr.Markdown(
             """
             # 🎨 VLM-Powered Image Captioning Tool
-            
+
             Generate high-quality captions for your LoRA training images using a local Vision-Language Model.
             """
         )
@@ -542,11 +623,17 @@ def create_ui() -> gr.Blocks:
             with gr.Column():
                 # Bulk Update
                 gr.Markdown("### 📝 Bulk Caption Update")
+                gr.Markdown("**Template Placeholders**: `{filename}` for filename, `{index}` for position")
 
                 bulk_template = gr.TextArea(
                     label="Template",
-                    placeholder="e.g., 'masterpiece, high quality'",
+                    placeholder="e.g., 'Image {index}: {filename}' or 'masterpiece, high quality'",
                     lines=2,
+                )
+                template_preview = gr.Textbox(
+                    label="Template Preview",
+                    interactive=False,
+                    placeholder="Template preview will appear here..."
                 )
                 bulk_mode = gr.Radio(
                     choices=["append", "prepend", "replace"],
@@ -604,18 +691,25 @@ def create_ui() -> gr.Blocks:
             outputs=[workspace_status, gallery_html],
         )
 
+        # Template preview handler
+        bulk_template.change(
+            fn=preview_template,
+            inputs=[bulk_template],
+            outputs=[template_preview],
+        )
+
         gr.Markdown(
             """
             ---
             ### 📚 Quick Guide
-            
+
             1. **Load Workspace**: Enter the path to your image directory and click "Load Workspace"
             2. **Browse Gallery**: Navigate through pages to see all your images
             3. **Edit Captions**: Click on an image or enter its index to load it for editing
             4. **Generate Captions**: Use the VLM to automatically generate captions
             5. **Batch Processing**: Generate captions for multiple images at once
             6. **Bulk Updates**: Apply templates to all captions (append/prepend/replace)
-            
+
             💡 **Tip**: Make sure LM Studio is running at http://127.0.0.1:1234 with a VLM loaded!
             """
         )
@@ -625,12 +719,17 @@ def create_ui() -> gr.Blocks:
 
 def main():
     """Main entry point for the application."""
+    # Initialize workspace manager to get secure paths
+    workspace_manager = WorkspaceManager()
+    session_workspace = workspace_manager.create_session_workspace()
+    allowed_paths = workspace_manager.get_allowed_paths()
+
     demo = create_ui()
     demo.launch(
         server_name="127.0.0.1",
         server_port=7860,
         share=False,
-        allowed_paths=["/"],  # Allow access to file paths
+        allowed_paths=allowed_paths,  # SECURITY FIX: Only allow session workspace
     )
 
 

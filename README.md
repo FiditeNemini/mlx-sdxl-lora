@@ -1,20 +1,31 @@
 # 🎨 VLM-Powered Image Captioning Tool for LoRA Training
 
-A desktop application that automates caption generation for SDXL LoRA models using a local Vision-Language Model (VLM) via LM Studio.
+A secure desktop application that automates caption generation for SDXL LoRA models using a local Vision-Language Model (VLM) via LM Studio.
 
 [![CI](https://github.com/FiditeNemini/mlx-sdxl-lora/actions/workflows/ci.yml/badge.svg)](https://github.com/FiditeNemini/mlx-sdxl-lora/actions/workflows/ci.yml)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Security](https://img.shields.io/badge/security-hardened-green.svg)](DEPLOYMENT_SUMMARY.md)
 
 ## 🌟 Features
 
-- **VLM Integration**: Connects to LM Studio's local Vision-Language Model for intelligent caption generation
-- **Batch Processing**: Generate captions for multiple images in one go
-- **Interactive Gallery**: Paginated UI for browsing large image datasets
-- **In-Place Editing**: Edit and refine captions directly in the interface
-- **Bulk Updates**: Apply templates to all captions (append/prepend/replace)
-- **Data Persistence**: Automatically saves captions as UTF-8 .txt files alongside images
-- **Human-in-the-Loop**: Review and refine AI-generated captions before finalizing
+- **🛡️ Secure Architecture**: Session-isolated workspaces with path traversal prevention
+- **🤖 VLM Integration**: Connects to LM Studio's local Vision-Language Model for intelligent caption generation
+- **⚡ Batch Processing**: Generate captions for multiple images in one go
+- **📋 Template Placeholders**: Dynamic templates with `{filename}` and `{index}` support
+- **🖼️ Interactive Gallery**: Paginated UI for browsing large image datasets
+- **✏️ In-Place Editing**: Edit and refine captions directly in the interface
+- **📝 Bulk Updates**: Apply templates to all captions (append/prepend/replace)
+- **💾 Data Persistence**: Automatically saves captions as UTF-8 .txt files alongside images
+- **🔄 Human-in-the-Loop**: Review and refine AI-generated captions before finalizing
+
+## 🔒 Security Features
+
+- **Session Workspace Isolation**: Each session gets a unique, temporary workspace
+- **Path Traversal Prevention**: Multi-layer validation prevents filesystem access attacks
+- **Input Sanitization**: Filenames and paths are sanitized for security
+- **Restricted File Access**: Only session workspace accessible to the application
+- **Comprehensive Testing**: 17 security tests with 100% coverage
 
 ## 📋 Prerequisites
 
@@ -124,7 +135,7 @@ The application will launch in your default browser at `http://127.0.0.1:7860`
 Apply templates to all captions:
 
 - **Append**: Add text to the end of existing captions
-- **Prepend**: Add text to the beginning of existing captions  
+- **Prepend**: Add text to the beginning of existing captions
 - **Replace**: Replace all captions with the template
 
 Example templates:

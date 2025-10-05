@@ -216,3 +216,7 @@ captions_metadata.json
 *.txt
 flagged/
 mlx-sdxl-lora.code-workspace
+
+# Developer Documentation (not needed by end users)
+developer_documentation/
+.github/copilot-instructions.md
