@@ -1,5 +1,5 @@
 {
-    "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+    "python.defaultInterpreterPath": "/opt/homebrew/Caskroom/miniconda/base/envs/mlx-sdxl-lora/bin/python",
     "python.envFile": "${workspaceFolder}/.env",
     "python.formatting.provider": "none",
     "python.linting.enabled": false,
@@ -9,13 +9,17 @@
         "-v"
     ],
     "python.testing.unittestEnabled": false,
+    "python.analysis.extraPaths": [
+        "/opt/homebrew/Caskroom/miniconda/base/envs/mlx-sdxl-lora/lib/python3.10/site-packages"
+    ],
+    "python.analysis.autoImportCompletions": true,
     "[python]": {
         "editor.formatOnSave": true,
         "editor.codeActionsOnSave": {
             "source.fixAll": "explicit",
             "source.organizeImports": "explicit"
         },
-        "editor.defaultFormatter": "charliermarsh.ruff"
+        "editor.defaultFormatter": "ms-python.python"
     },
     "ruff.enable": true,
     "ruff.lint.enable": true,

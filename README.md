@@ -12,7 +12,9 @@ A secure desktop application that automates caption generation for SDXL LoRA mod
 - **🛡️ Secure Architecture**: Session-isolated workspaces with path traversal prevention
 - **🤖 VLM Integration**: Connects to LM Studio's local Vision-Language Model for intelligent caption generation
 - **⚡ Batch Processing**: Generate captions for multiple images in one go
-- **📋 Template Placeholders**: Dynamic templates with `{filename}` and `{index}` support
+- **� Directory Upload**: Drop entire folders of images for processing (`file_count='directory'`)
+- **📊 Progress Indicators**: Real-time progress tracking for all operations
+- **�📋 Template Placeholders**: Dynamic templates with `{filename}` and `{index}` support
 - **🖼️ Interactive Gallery**: Paginated UI for browsing large image datasets
 - **✏️ In-Place Editing**: Edit and refine captions directly in the interface
 - **📝 Bulk Updates**: Apply templates to all captions (append/prepend/replace)
