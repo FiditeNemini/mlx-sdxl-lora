@@ -30,7 +30,9 @@ class WorkspaceManager:
         self.session_id = str(uuid.uuid4())
 
         # Create temporary workspace directory
-        workspace_root = tempfile.mkdtemp(prefix=f"captioning_session_{self.session_id}_")
+        workspace_root = tempfile.mkdtemp(
+            prefix=f"captioning_session_{self.session_id}_"
+        )
         self.current_workspace = workspace_root
         self.active_workspaces[self.session_id] = workspace_root
 
@@ -50,7 +52,9 @@ class WorkspaceManager:
             SecurityError: If path traversal detected
         """
         if not self.current_workspace:
-            raise ValueError("No active workspace. Call create_session_workspace() first.")
+            raise ValueError(
+                "No active workspace. Call create_session_workspace() first."
+            )
 
         workspace_files = []
 
@@ -58,8 +62,10 @@ class WorkspaceManager:
             source_path = Path(source_file)
 
             # Check for path traversal in the filename itself BEFORE checking existence
-            if '..' in str(source_path) or '/../' in str(source_path):
-                raise SecurityError(f"Path traversal detected in filename: {source_file}")
+            if ".." in str(source_path) or "/../" in str(source_path):
+                raise SecurityError(
+                    f"Path traversal detected in filename: {source_file}"
+                )
 
             # Security: Prevent path traversal (do this before file existence check)
             if not self._is_safe_path(source_path):
@@ -76,7 +82,7 @@ class WorkspaceManager:
             # Copy file to workspace
             try:
                 shutil.copy2(source_path, workspace_path)
-                caption_path = workspace_path.with_suffix('.txt')
+                caption_path = workspace_path.with_suffix(".txt")
                 workspace_files.append((str(workspace_path), str(caption_path)))
             except Exception as e:
                 print(f"Warning: Could not copy {source_file}: {e}")
@@ -94,7 +100,9 @@ class WorkspaceManager:
             List of tuples (workspace_path, caption_path)
         """
         if not self.current_workspace:
-            raise ValueError("No active workspace. Call create_session_workspace() first.")
+            raise ValueError(
+                "No active workspace. Call create_session_workspace() first."
+            )
 
         source_path = Path(source_dir)
         if not source_path.exists() or not source_path.is_dir():
@@ -120,7 +128,7 @@ class WorkspaceManager:
 
                 try:
                     shutil.copy2(file_path, workspace_file)
-                    caption_path = workspace_file.with_suffix('.txt')
+                    caption_path = workspace_file.with_suffix(".txt")
                     workspace_files.append((str(workspace_file), str(caption_path)))
                 except Exception as e:
                     print(f"Warning: Could not copy {file_path}: {e}")
@@ -175,23 +183,29 @@ class WorkspaceManager:
         try:
             # Check for obvious path traversal patterns
             path_str = str(path)
-            if '..' in path_str or path_str.startswith('/proc') or path_str.startswith('/sys'):
+            if (
+                ".." in path_str
+                or path_str.startswith("/proc")
+                or path_str.startswith("/sys")
+            ):
                 return False
 
             # Check if the path contains relative components
             for part in path.parts:
-                if part == '..':
+                if part == "..":
                     return False
 
             # Resolve path and ensure it doesn't escape expected boundaries
             resolved = path.resolve()
 
             # Additional checks for common dangerous paths
-            dangerous_patterns = ['/etc/', '/root/', '/home/', '/var/log/', '/tmp/']
+            dangerous_patterns = ["/etc/", "/root/", "/home/", "/var/log/", "/tmp/"]
             resolved_str = str(resolved)
 
             for pattern in dangerous_patterns:
-                if pattern in resolved_str and not resolved_str.startswith('/tmp/captioning_session_'):
+                if pattern in resolved_str and not resolved_str.startswith(
+                    "/tmp/captioning_session_"
+                ):
                     return False
 
             return True
@@ -210,18 +224,18 @@ class WorkspaceManager:
         import re
 
         # First, reject if contains path traversal patterns
-        if '..' in filename or '/' in filename or '\\' in filename:
+        if ".." in filename or "/" in filename or "\\" in filename:
             # Replace dangerous patterns more aggressively
-            safe_filename = re.sub(r'\.\.+', '_DOTS_', filename)
-            safe_filename = re.sub(r'[/\\]', '_PATH_', safe_filename)
+            safe_filename = re.sub(r"\.\.+", "_DOTS_", filename)
+            safe_filename = re.sub(r"[/\\]", "_PATH_", safe_filename)
         else:
             safe_filename = filename
 
         # Remove or replace dangerous characters
-        safe_filename = re.sub(r'[^\w\-_\.]', '_', safe_filename)
+        safe_filename = re.sub(r"[^\w\-_\.]", "_", safe_filename)
 
         # Remove consecutive underscores
-        safe_filename = re.sub(r'_+', '_', safe_filename)
+        safe_filename = re.sub(r"_+", "_", safe_filename)
 
         # Ensure filename is not empty and has reasonable length
         if not safe_filename or len(safe_filename) < 1:
@@ -236,6 +250,7 @@ class WorkspaceManager:
 
 class SecurityError(Exception):
     """Exception raised for security violations."""
+
     pass
 
 

@@ -5,7 +5,7 @@ Supports placeholder substitution in bulk caption operations.
 
 import re
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 
 class TemplateEngine:
@@ -13,11 +13,11 @@ class TemplateEngine:
 
     def __init__(self):
         self.placeholders = {
-            'filename': self._get_filename,
-            'basename': self._get_basename,
-            'index': self._get_index,
-            'extension': self._get_extension,
-            'directory': self._get_directory,
+            "filename": self._get_filename,
+            "basename": self._get_basename,
+            "index": self._get_index,
+            "extension": self._get_extension,
+            "directory": self._get_directory,
         }
 
     def process_template(self, template: str, image_path: str, index: int = 0) -> str:
@@ -40,20 +40,19 @@ class TemplateEngine:
             return ""
 
         # Find all placeholders in the template
-        placeholders = re.findall(r'\{(\w+)\}', template)
+        placeholders = re.findall(r"\{(\w+)\}", template)
         processed_template = template
 
         # Create context for placeholder resolution
-        context = {
-            'image_path': image_path,
-            'index': index
-        }
+        context = {"image_path": image_path, "index": index}
 
         # Replace each placeholder
         for placeholder in placeholders:
             if placeholder in self.placeholders:
                 value = self.placeholders[placeholder](context)
-                processed_template = processed_template.replace(f'{{{placeholder}}}', str(value))
+                processed_template = processed_template.replace(
+                    f"{{{placeholder}}}", str(value)
+                )
 
         return processed_template.strip()
 
@@ -67,10 +66,10 @@ class TemplateEngine:
             Dictionary with 'valid_placeholders' and 'invalid_placeholders' lists
         """
         if not template:
-            return {'valid_placeholders': [], 'invalid_placeholders': []}
+            return {"valid_placeholders": [], "invalid_placeholders": []}
 
         # Find all placeholders
-        placeholders = re.findall(r'\{(\w+)\}', template)
+        placeholders = re.findall(r"\{(\w+)\}", template)
 
         valid_placeholders = []
         invalid_placeholders = []
@@ -82,8 +81,8 @@ class TemplateEngine:
                 invalid_placeholders.append(placeholder)
 
         return {
-            'valid_placeholders': valid_placeholders,
-            'invalid_placeholders': invalid_placeholders
+            "valid_placeholders": valid_placeholders,
+            "invalid_placeholders": invalid_placeholders,
         }
 
     def get_available_placeholders(self) -> Dict[str, str]:
@@ -93,11 +92,11 @@ class TemplateEngine:
             Dictionary mapping placeholder names to descriptions
         """
         return {
-            'filename': 'Full filename with extension (e.g., "image.jpg")',
-            'basename': 'Filename without extension (e.g., "image")',
-            'index': 'Index of the image in the dataset (0-based)',
-            'extension': 'File extension without dot (e.g., "jpg")',
-            'directory': 'Name of the parent directory',
+            "filename": 'Full filename with extension (e.g., "image.jpg")',
+            "basename": 'Filename without extension (e.g., "image")',
+            "index": "Index of the image in the dataset (0-based)",
+            "extension": 'File extension without dot (e.g., "jpg")',
+            "directory": "Name of the parent directory",
         }
 
     def preview_template(self, template: str, sample_paths: List[str]) -> List[str]:
@@ -123,23 +122,23 @@ class TemplateEngine:
     # Placeholder resolver functions
     def _get_filename(self, context: Dict) -> str:
         """Get full filename with extension."""
-        return Path(context['image_path']).name
+        return Path(context["image_path"]).name
 
     def _get_basename(self, context: Dict) -> str:
         """Get filename without extension."""
-        return Path(context['image_path']).stem
+        return Path(context["image_path"]).stem
 
     def _get_index(self, context: Dict) -> int:
         """Get image index."""
-        return context['index']
+        return context["index"]
 
     def _get_extension(self, context: Dict) -> str:
         """Get file extension without dot."""
-        return Path(context['image_path']).suffix.lstrip('.')
+        return Path(context["image_path"]).suffix.lstrip(".")
 
     def _get_directory(self, context: Dict) -> str:
         """Get parent directory name."""
-        return Path(context['image_path']).parent.name
+        return Path(context["image_path"]).parent.name
 
 
 # Global template engine instance

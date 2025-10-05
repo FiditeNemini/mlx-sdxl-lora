@@ -458,7 +458,9 @@ def bulk_update_captions(template: str, mode: str = "append") -> Tuple[str, str]
         for index, (img_path, _) in enumerate(images):
             try:
                 # Process template with dynamic placeholders
-                processed_template = template_engine.process_template(template, img_path, index)
+                processed_template = template_engine.process_template(
+                    template, img_path, index
+                )
 
                 current_caption = load_caption(img_path)
 
@@ -510,7 +512,9 @@ def preview_template(template: str) -> str:
             preview = template_engine.process_template(template, example_path, 0)
         else:
             # Use example data if no images loaded
-            preview = template_engine.process_template(template, "/path/to/example_image.jpg", 0)
+            preview = template_engine.process_template(
+                template, "/path/to/example_image.jpg", 0
+            )
 
         return f"Preview: {preview}"
     except Exception as e:
@@ -623,7 +627,9 @@ def create_ui() -> gr.Blocks:
             with gr.Column():
                 # Bulk Update
                 gr.Markdown("### 📝 Bulk Caption Update")
-                gr.Markdown("**Template Placeholders**: `{filename}` for filename, `{index}` for position")
+                gr.Markdown(
+                    "**Template Placeholders**: `{filename}` for filename, `{index}` for position"
+                )
 
                 bulk_template = gr.TextArea(
                     label="Template",
@@ -633,7 +639,7 @@ def create_ui() -> gr.Blocks:
                 template_preview = gr.Textbox(
                     label="Template Preview",
                     interactive=False,
-                    placeholder="Template preview will appear here..."
+                    placeholder="Template preview will appear here...",
                 )
                 bulk_mode = gr.Radio(
                     choices=["append", "prepend", "replace"],
@@ -721,7 +727,7 @@ def main():
     """Main entry point for the application."""
     # Initialize workspace manager to get secure paths
     workspace_manager = WorkspaceManager()
-    session_workspace = workspace_manager.create_session_workspace()
+    workspace_manager.create_session_workspace()
     allowed_paths = workspace_manager.get_allowed_paths()
 
     demo = create_ui()

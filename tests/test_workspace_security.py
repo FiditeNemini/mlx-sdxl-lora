@@ -35,11 +35,11 @@ class TestWorkspaceSecurity:
     def test_path_traversal_prevention(self):
         """Test prevention of path traversal attacks."""
         manager = WorkspaceManager()
-        workspace = manager.create_session_workspace()
+        manager.create_session_workspace()
 
         try:
             # Create a malicious file path
-            with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as f:
+            with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as f:
                 malicious_path = f.name
 
             # This should work (normal file)
@@ -48,10 +48,10 @@ class TestWorkspaceSecurity:
 
             # These should fail (path traversal attempts)
             with pytest.raises(SecurityError):
-                manager.copy_files_to_workspace(['../../../etc/passwd'])
+                manager.copy_files_to_workspace(["../../../etc/passwd"])
 
             with pytest.raises(SecurityError):
-                manager.copy_files_to_workspace(['/proc/version'])
+                manager.copy_files_to_workspace(["/proc/version"])
 
         finally:
             # Cleanup
@@ -97,9 +97,9 @@ class TestWorkspaceSecurity:
             sanitized = manager._sanitize_filename(dangerous_name)
 
             # Should not contain dangerous characters
-            assert '..' not in sanitized
-            assert '<' not in sanitized
-            assert '>' not in sanitized
+            assert ".." not in sanitized
+            assert "<" not in sanitized
+            assert ">" not in sanitized
             assert len(sanitized) > 0  # Should not be empty
 
     def test_workspace_cleanup(self):

@@ -34,15 +34,15 @@ class TestTemplateEngine:
         valid_template = "Image {filename} at index {index}"
         result = engine.validate_template(valid_template)
 
-        assert result['valid_placeholders'] == ['filename', 'index']
-        assert result['invalid_placeholders'] == []
+        assert result["valid_placeholders"] == ["filename", "index"]
+        assert result["invalid_placeholders"] == []
 
         # Invalid template
         invalid_template = "Image {filename} with {invalid_placeholder}"
         result = engine.validate_template(invalid_template)
 
-        assert result['valid_placeholders'] == ['filename']
-        assert result['invalid_placeholders'] == ['invalid_placeholder']
+        assert result["valid_placeholders"] == ["filename"]
+        assert result["invalid_placeholders"] == ["invalid_placeholder"]
 
     def test_empty_template(self):
         """Test handling of empty templates."""
@@ -52,19 +52,15 @@ class TestTemplateEngine:
         assert engine.process_template(None, "/path/image.jpg", 0) == ""
 
         validation = engine.validate_template("")
-        assert validation['valid_placeholders'] == []
-        assert validation['invalid_placeholders'] == []
+        assert validation["valid_placeholders"] == []
+        assert validation["invalid_placeholders"] == []
 
     def test_template_preview(self):
         """Test template preview functionality."""
         engine = TemplateEngine()
 
         template = "Image {index}: {filename}"
-        sample_paths = [
-            "/path/image1.jpg",
-            "/path/image2.png",
-            "/path/image3.webp"
-        ]
+        sample_paths = ["/path/image1.jpg", "/path/image2.png", "/path/image3.webp"]
 
         previews = engine.preview_template(template, sample_paths)
 
@@ -93,7 +89,7 @@ class TestTemplateEngine:
         placeholders = engine.get_available_placeholders()
 
         # Check that all expected placeholders are present
-        expected_keys = ['filename', 'basename', 'index', 'extension', 'directory']
+        expected_keys = ["filename", "basename", "index", "extension", "directory"]
         for key in expected_keys:
             assert key in placeholders
             assert isinstance(placeholders[key], str)
@@ -126,7 +122,9 @@ class TestTemplateEngine:
         assert result == "filename."
 
         # File with multiple dots
-        result = engine.process_template("{basename}.{extension}", "/path/file.name.jpg", 0)
+        result = engine.process_template(
+            "{basename}.{extension}", "/path/file.name.jpg", 0
+        )
         assert result == "file.name.jpg"
 
         # Hidden file

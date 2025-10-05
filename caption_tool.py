@@ -10,7 +10,7 @@ Features include batch processing, interactive editing, and data persistence.
 import os
 import gradio as gr
 from pathlib import Path
-from typing import List, Tuple, Optional
+from typing import List, Tuple
 import json
 from PIL import Image
 
@@ -21,6 +21,7 @@ from template_engine import TemplateEngine
 # Global workspace and template managers
 workspace_manager = WorkspaceManager()
 template_engine = TemplateEngine()
+
 
 class CaptionGenerator:
     """Handles VLM-based image captioning with MLX."""
@@ -36,7 +37,6 @@ class CaptionGenerator:
             return "Model already loaded"
 
         try:
-            import mlx.core as mx
             from mlx_vlm import load, generate
             from mlx_vlm.prompt_utils import apply_chat_template
             from mlx_vlm.utils import load_config
@@ -50,7 +50,11 @@ class CaptionGenerator:
         except Exception as e:
             return f"Error loading model: {str(e)}"
 
-    def generate_caption(self, image_path: str, prompt: str = "Describe this image in detail for training a text-to-image model.") -> str:
+    def generate_caption(
+        self,
+        image_path: str,
+        prompt: str = "Describe this image in detail for training a text-to-image model.",
+    ) -> str:
         """Generate a caption for a single image."""
         if not self.model_loaded:
             load_status = self.load_model()
@@ -75,7 +79,7 @@ class CaptionGenerator:
                 formatted_prompt,
                 max_tokens=500,
                 temperature=0.7,
-                verbose=False
+                verbose=False,
             )
 
             return output.strip()
@@ -109,12 +113,12 @@ class CaptionManager:
         for image_path, caption in self.captions.items():
             try:
                 # Save caption as .txt file with same name as image
-                txt_path = Path(image_path).with_suffix('.txt')
+                txt_path = Path(image_path).with_suffix(".txt")
                 if output_dir:
                     txt_path = Path(output_dir) / txt_path.name
                     os.makedirs(output_dir, exist_ok=True)
 
-                with open(txt_path, 'w', encoding='utf-8') as f:
+                with open(txt_path, "w", encoding="utf-8") as f:
                     f.write(caption)
                 saved_count += 1
             except Exception as e:
@@ -125,10 +129,10 @@ class CaptionManager:
     def load_existing_captions(self, image_paths: List[str]):
         """Load existing captions from .txt files if they exist."""
         for image_path in image_paths:
-            txt_path = Path(image_path).with_suffix('.txt')
+            txt_path = Path(image_path).with_suffix(".txt")
             if txt_path.exists():
                 try:
-                    with open(txt_path, 'r', encoding='utf-8') as f:
+                    with open(txt_path, "r", encoding="utf-8") as f:
                         caption = f.read().strip()
                         self.add_caption(image_path, caption)
                 except Exception as e:
@@ -137,11 +141,8 @@ class CaptionManager:
     def export_metadata(self, output_path: str = "captions_metadata.json") -> str:
         """Export all captions to a JSON file."""
         try:
-            metadata = {
-                "captions": self.captions,
-                "image_count": len(self.image_list)
-            }
-            with open(output_path, 'w', encoding='utf-8') as f:
+            metadata = {"captions": self.captions, "image_count": len(self.image_list)}
+            with open(output_path, "w", encoding="utf-8") as f:
                 json.dump(metadata, f, indent=2, ensure_ascii=False)
             return f"Exported metadata to {output_path}"
         except Exception as e:
@@ -153,7 +154,9 @@ caption_generator = CaptionGenerator()
 caption_manager = CaptionManager()
 
 
-def process_single_image(image_path: str, custom_prompt: str = None, progress=None) -> Tuple[str, str]:
+def process_single_image(
+    image_path: str, custom_prompt: str = None, progress=None
+) -> Tuple[str, str]:
     """Process a single image and generate caption with optional progress tracking."""
     if not image_path:
         return "", "Please upload an image first"
@@ -171,7 +174,11 @@ def process_single_image(image_path: str, custom_prompt: str = None, progress=No
         if progress:
             progress(0.3, desc="Generating caption...")
 
-        prompt = custom_prompt if custom_prompt else "Describe this image in detail for training a text-to-image model."
+        prompt = (
+            custom_prompt
+            if custom_prompt
+            else "Describe this image in detail for training a text-to-image model."
+        )
         caption = caption_generator.generate_caption(image_path, prompt)
 
         if progress:
@@ -191,13 +198,21 @@ def process_single_image(image_path: str, custom_prompt: str = None, progress=No
         return f"Error: {str(e)}", "Processing failed"
 
 
-def process_single_image_with_progress(image_path: str, custom_prompt: str = None, progress=gr.Progress()) -> Tuple[str, str]:
+def process_single_image_with_progress(
+    image_path: str, custom_prompt: str = None, progress=gr.Progress()
+) -> Tuple[str, str]:
     """Wrapper for single image processing with progress indicator."""
     return process_single_image(image_path, custom_prompt, progress)
 
 
-def process_batch(image_files: List[str], directory_files: List[str], custom_prompt: str = None,
-                 use_template: bool = False, template_text: str = "", progress=gr.Progress()) -> str:
+def process_batch(
+    image_files: List[str],
+    directory_files: List[str],
+    custom_prompt: str = None,
+    use_template: bool = False,
+    template_text: str = "",
+    progress=gr.Progress(),
+) -> str:
     """Process multiple images in batch with security and template support."""
     # Combine files from both sources
     all_files = []
@@ -211,7 +226,10 @@ def process_batch(image_files: List[str], directory_files: List[str], custom_pro
 
     try:
         # Create secure workspace if not exists
-        if not hasattr(workspace_manager, 'current_workspace') or not workspace_manager.current_workspace:
+        if (
+            not hasattr(workspace_manager, "current_workspace")
+            or not workspace_manager.current_workspace
+        ):
             workspace_manager.create_session_workspace()
 
         # Securely copy files to workspace
@@ -232,7 +250,10 @@ def process_batch(image_files: List[str], directory_files: List[str], custom_pro
         for idx, image_path in enumerate(image_files_secure):
             # Calculate progress (20% to 90% for processing)
             current_progress = 0.2 + (0.7 * (idx + 1) / total_files)
-            progress(current_progress, desc=f"Processing {idx + 1}/{total_files}: {Path(image_path).name}")
+            progress(
+                current_progress,
+                desc=f"Processing {idx + 1}/{total_files}: {Path(image_path).name}",
+            )
 
             # Skip if caption already exists
             if caption_manager.get_caption(image_path):
@@ -243,13 +264,25 @@ def process_batch(image_files: List[str], directory_files: List[str], custom_pro
             caption, status = process_single_image(image_path, custom_prompt)
 
             # Apply template if requested
-            if use_template and template_text.strip() and not caption.startswith("Error"):
+            if (
+                use_template
+                and template_text.strip()
+                and not caption.startswith("Error")
+            ):
                 try:
-                    templated_caption = template_engine.process_template(template_text, image_path, idx)
+                    templated_caption = template_engine.process_template(
+                        template_text, image_path, idx
+                    )
                     # Combine VLM caption with template
-                    caption = f"{templated_caption}, {caption}" if templated_caption != template_text else caption
+                    caption = (
+                        f"{templated_caption}, {caption}"
+                        if templated_caption != template_text
+                        else caption
+                    )
                 except Exception as e:
-                    results.append(f"⚠️ {Path(image_path).name}: Template error: {str(e)}")
+                    results.append(
+                        f"⚠️ {Path(image_path).name}: Template error: {str(e)}"
+                    )
                     continue
 
             if not caption.startswith("Error"):
@@ -281,7 +314,9 @@ def preview_template(template_text: str) -> str:
         return "Enter a template to see preview..."
 
     try:
-        preview = template_engine.process_template(template_text, "/path/to/example_image.jpg", 0)
+        preview = template_engine.process_template(
+            template_text, "/path/to/example_image.jpg", 0
+        )
         return f"Preview: {preview}"
     except Exception as e:
         return f"Template error: {str(e)}"
@@ -291,7 +326,7 @@ def toggle_template_visibility(use_template: bool) -> Tuple[dict, dict]:
     """Toggle visibility of template-related components."""
     return (
         {"visible": use_template, "__type__": "update"},
-        {"visible": use_template, "__type__": "update"}
+        {"visible": use_template, "__type__": "update"},
     )
 
 
@@ -312,7 +347,9 @@ def get_caption_for_display(image_path: str) -> str:
 def create_ui():
     """Create the Gradio UI."""
 
-    with gr.Blocks(title="VLM Image Captioning for LoRA Training", theme=gr.themes.Soft()) as app:
+    with gr.Blocks(
+        title="VLM Image Captioning for LoRA Training", theme=gr.themes.Soft()
+    ) as app:
         gr.Markdown(
             """
             # 🖼️ VLM-Powered Image Captioning Tool for LoRA Training
@@ -328,37 +365,39 @@ def create_ui():
                 with gr.Row():
                     with gr.Column(scale=1):
                         single_image = gr.Image(
-                            type="filepath",
-                            label="Upload Image",
-                            height=400
+                            type="filepath", label="Upload Image", height=400
                         )
                         single_prompt = gr.Textbox(
                             label="Custom Prompt (Optional)",
                             placeholder="Describe this image in detail for training a text-to-image model.",
-                            lines=2
+                            lines=2,
                         )
-                        single_generate_btn = gr.Button("Generate Caption", variant="primary")
+                        single_generate_btn = gr.Button(
+                            "Generate Caption", variant="primary"
+                        )
 
                     with gr.Column(scale=1):
                         single_caption = gr.Textbox(
                             label="Generated Caption",
                             lines=10,
-                            placeholder="Caption will appear here..."
+                            placeholder="Caption will appear here...",
                         )
                         single_status = gr.Textbox(label="Status", lines=1)
-                        single_update_btn = gr.Button("Update Caption", variant="secondary")
+                        single_update_btn = gr.Button(
+                            "Update Caption", variant="secondary"
+                        )
                         single_save_btn = gr.Button("Save Caption", variant="secondary")
 
                 single_generate_btn.click(
                     fn=process_single_image_with_progress,
                     inputs=[single_image, single_prompt],
-                    outputs=[single_caption, single_status]
+                    outputs=[single_caption, single_status],
                 )
 
                 single_update_btn.click(
                     fn=update_caption,
                     inputs=[single_image, single_caption],
-                    outputs=[single_status]
+                    outputs=[single_status],
                 )
 
                 single_save_btn.click(
@@ -366,7 +405,7 @@ def create_ui():
                         caption_manager.save_captions() if img else "No image to save"
                     ),
                     inputs=[single_image, single_caption],
-                    outputs=[single_status]
+                    outputs=[single_status],
                 )
 
             # Batch Processing Tab
@@ -379,72 +418,79 @@ def create_ui():
                         batch_images = gr.File(
                             file_count="multiple",
                             label="Upload Multiple Images",
-                            file_types=["image"]
+                            file_types=["image"],
                         )
 
                         # Directory upload support
                         directory_upload = gr.File(
                             file_count="directory",
                             label="Or Upload Entire Directory",
-                            file_types=["image"]
+                            file_types=["image"],
                         )
 
                         batch_prompt = gr.Textbox(
                             label="Custom Prompt (Optional)",
                             placeholder="Describe this image in detail for training a text-to-image model.",
-                            lines=2
+                            lines=2,
                         )
 
                         gr.Markdown("### 📝 Template Options")
                         use_template = gr.Checkbox(
-                            label="Use Template Placeholders",
-                            value=False
+                            label="Use Template Placeholders", value=False
                         )
                         template_text = gr.Textbox(
                             label="Template (supports {filename}, {index})",
                             placeholder="e.g., 'Image {index}: {filename}'",
-                            visible=False
+                            visible=False,
                         )
                         template_preview = gr.Textbox(
-                            label="Template Preview",
-                            interactive=False,
-                            visible=False
+                            label="Template Preview", interactive=False, visible=False
                         )
 
-                        batch_process_btn = gr.Button("Process Batch", variant="primary")
+                        batch_process_btn = gr.Button(
+                            "Process Batch", variant="primary"
+                        )
 
                     with gr.Column():
                         batch_results = gr.Textbox(
                             label="Processing Results",
                             lines=15,
-                            placeholder="Results will appear here..."
+                            placeholder="Results will appear here...",
                         )
-                        batch_save_btn = gr.Button("Save All Captions", variant="primary")
+                        batch_save_btn = gr.Button(
+                            "Save All Captions", variant="primary"
+                        )
                         batch_save_status = gr.Textbox(label="Save Status", lines=2)
 
                 batch_process_btn.click(
                     fn=process_batch,
-                    inputs=[batch_images, directory_upload, batch_prompt, use_template, template_text],
-                    outputs=[batch_results]
+                    inputs=[
+                        batch_images,
+                        directory_upload,
+                        batch_prompt,
+                        use_template,
+                        template_text,
+                    ],
+                    outputs=[batch_results],
                 )
 
                 # Template functionality event handlers
                 use_template.change(
                     fn=toggle_template_visibility,
                     inputs=[use_template],
-                    outputs=[template_text, template_preview]
+                    outputs=[template_text, template_preview],
                 )
 
                 template_text.change(
                     fn=preview_template,
                     inputs=[template_text],
-                    outputs=[template_preview]
+                    outputs=[template_preview],
                 )
 
                 batch_save_btn.click(
                     fn=lambda: save_all_captions(),
                     inputs=[],
-                    outputs=[batch_save_status]
+                    outputs=[batch_save_status],
                 )
 
             # Editor Tab
@@ -453,32 +499,32 @@ def create_ui():
 
                 with gr.Row():
                     editor_image = gr.Image(
-                        type="filepath",
-                        label="Select Image",
-                        height=400
+                        type="filepath", label="Select Image", height=400
                     )
 
                 with gr.Row():
                     editor_caption = gr.Textbox(
                         label="Caption",
                         lines=8,
-                        placeholder="Caption will load when image is selected..."
+                        placeholder="Caption will load when image is selected...",
                     )
 
                 with gr.Row():
-                    editor_update_btn = gr.Button("Save Edited Caption", variant="primary")
+                    editor_update_btn = gr.Button(
+                        "Save Edited Caption", variant="primary"
+                    )
                     editor_status = gr.Textbox(label="Status", lines=1)
 
                 editor_image.change(
                     fn=get_caption_for_display,
                     inputs=[editor_image],
-                    outputs=[editor_caption]
+                    outputs=[editor_caption],
                 )
 
                 editor_update_btn.click(
                     fn=update_caption,
                     inputs=[editor_image, editor_caption],
-                    outputs=[editor_status]
+                    outputs=[editor_status],
                 )
 
             # Settings Tab
@@ -489,14 +535,14 @@ def create_ui():
                         model_status = gr.Textbox(
                             label="Model Status",
                             value="Model will load on first use",
-                            interactive=False
+                            interactive=False,
                         )
                         load_model_btn = gr.Button("Pre-load Model")
 
                         gr.Markdown("### Export Options")
                         output_dir = gr.Textbox(
                             label="Output Directory (Optional)",
-                            placeholder="Leave empty to save next to images"
+                            placeholder="Leave empty to save next to images",
                         )
                         export_btn = gr.Button("Export All Captions", variant="primary")
                         export_status = gr.Textbox(label="Export Status", lines=3)
@@ -504,13 +550,11 @@ def create_ui():
                 load_model_btn.click(
                     fn=lambda: caption_generator.load_model(),
                     inputs=[],
-                    outputs=[model_status]
+                    outputs=[model_status],
                 )
 
                 export_btn.click(
-                    fn=save_all_captions,
-                    inputs=[output_dir],
-                    outputs=[export_status]
+                    fn=save_all_captions, inputs=[output_dir], outputs=[export_status]
                 )
 
         gr.Markdown(
@@ -542,7 +586,7 @@ def main():
         server_port=7860,
         share=False,
         inbrowser=True,
-        allowed_paths=allowed_paths  # SECURITY FIX: Only allow session workspace
+        allowed_paths=allowed_paths,  # SECURITY FIX: Only allow session workspace
     )
 
 
