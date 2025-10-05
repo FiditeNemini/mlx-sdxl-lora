@@ -205,3 +205,13 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# MLX Model Cache
+.cache/
+mlx_vlm_cache/
+models/
+
+# Caption Tool
+captions_metadata.json
+*.txt
+flagged/
