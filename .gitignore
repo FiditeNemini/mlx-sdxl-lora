@@ -189,7 +189,7 @@ cython_debug/
 # .vscode/
 
 # VS Code user-specific settings (interpreter paths, etc.)
-.vscode/settings.json
+.vscode/*
 
 # Ruff stuff:
 .ruff_cache/
