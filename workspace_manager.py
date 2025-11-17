@@ -82,6 +82,13 @@ class WorkspaceManager:
             # Copy file to workspace
             try:
                 shutil.copy2(source_path, workspace_path)
+
+                # Also copy caption file if it exists
+                source_caption = source_path.with_suffix(".txt")
+                if source_caption.exists():
+                    workspace_caption = workspace_path.with_suffix(".txt")
+                    shutil.copy2(source_caption, workspace_caption)
+
                 caption_path = workspace_path.with_suffix(".txt")
                 workspace_files.append((str(workspace_path), str(caption_path)))
             except Exception as e:
@@ -128,6 +135,13 @@ class WorkspaceManager:
 
                 try:
                     shutil.copy2(file_path, workspace_file)
+
+                    # Also copy caption file if it exists
+                    source_caption = file_path.with_suffix(".txt")
+                    if source_caption.exists():
+                        workspace_caption = workspace_file.with_suffix(".txt")
+                        shutil.copy2(source_caption, workspace_caption)
+
                     caption_path = workspace_file.with_suffix(".txt")
                     workspace_files.append((str(workspace_file), str(caption_path)))
                 except Exception as e:
