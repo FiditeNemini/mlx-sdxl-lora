@@ -13,6 +13,8 @@ Features:
 """
 
 import base64
+import socket
+import sys
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
@@ -723,20 +725,72 @@ def create_ui() -> gr.Blocks:
     return demo
 
 
+def find_available_port(
+    start_port: int = 7860, max_attempts: int = 10
+) -> Optional[int]:
+    """Find an available port starting from start_port.
+
+    Args:
+        start_port: Port number to start searching from
+        max_attempts: Maximum number of ports to try
+
+    Returns:
+        Available port number or None if no port found
+    """
+    for port in range(start_port, start_port + max_attempts):
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.bind(("", port))
+                return port
+        except OSError:
+            continue
+    return None
+
+
 def main():
     """Main entry point for the application."""
-    # Initialize workspace manager to get secure paths
-    workspace_manager = WorkspaceManager()
-    workspace_manager.create_session_workspace()
-    allowed_paths = workspace_manager.get_allowed_paths()
+    try:
+        # Initialize workspace manager to get secure paths
+        print("🚀 Starting VLM Image Captioning Tool...")
+        workspace_manager = WorkspaceManager()
+        workspace_manager.create_session_workspace()
+        allowed_paths = workspace_manager.get_allowed_paths()
+        print(f"✅ Workspace initialized: {workspace_manager.current_workspace}")
 
-    demo = create_ui()
-    demo.launch(
-        server_name="127.0.0.1",
-        server_port=7860,
-        share=False,
-        allowed_paths=allowed_paths,  # SECURITY FIX: Only allow session workspace
-    )
+        # Find available port
+        port = find_available_port(start_port=7860, max_attempts=10)
+        if port is None:
+            print("❌ Error: Could not find available port in range 7860-7869")
+            print(
+                "💡 Please free up some ports or specify GRADIO_SERVER_PORT environment variable"
+            )
+            sys.exit(1)
+
+        if port != 7860:
+            print(f"⚠️  Port 7860 is busy, using port {port} instead")
+
+        demo = create_ui()
+        print(f"\n🌐 Launching application at http://127.0.0.1:{port}")
+        print("💡 Make sure LM Studio is running at http://127.0.0.1:1234")
+        print("\nPress Ctrl+C to stop the server\n")
+
+        demo.launch(
+            server_name="127.0.0.1",
+            server_port=port,
+            share=False,
+            allowed_paths=allowed_paths,  # SECURITY FIX: Only allow session workspace
+            show_error=True,
+        )
+    except KeyboardInterrupt:
+        print("\n\n👋 Shutting down gracefully...")
+        sys.exit(0)
+    except Exception as e:
+        print(f"\n❌ Error starting application: {e}")
+        print("\n💡 Troubleshooting tips:")
+        print("   - Check if another instance is already running")
+        print("   - Verify you have necessary permissions")
+        print("   - Try restarting your terminal/IDE")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
